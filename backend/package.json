@@ -1,0 +1,19 @@
+{
+  "name": "smartpark-ai-backend",
+  "version": "3.0.0",
+  "description": "SmartPark AI — Pure Node.js backend, zero npm dependencies",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --experimental-sqlite server.js",
+    "dev": "node --experimental-sqlite --watch server.js"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3",
+    "uuid": "^14.0.0"
+  },
+  "author": "Prathmesh Bhatt & Krish Menaria — JECRC University 2026"
+}

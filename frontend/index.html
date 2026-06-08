@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>body{display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden}.hero{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 24px 60px;text-align:center}.blob{position:absolute;border-radius:50%;filter:blur(90px);pointer-events:none}.grd{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;max-width:900px;width:100%;margin-top:48px}</style>
+</head>
+<body>
+<div class="blob" style="width:600px;height:600px;background:rgba(249,115,22,0.08);top:-100px;left:-100px"></div>
+<div class="blob" style="width:400px;height:400px;background:rgba(59,130,246,0.07);bottom:0;right:-50px"></div>
+<div class="hero pe">
+  <span class="badge bo" style="margin-bottom:20px;font-size:12px;padding:5px 14px">🇮🇳 Built for Indian Smart Cities</span>
+  <h1 class="fd" style="font-size:clamp(2.2rem,6vw,3.8rem);font-weight:800;line-height:1.1;color:#fff;margin-bottom:20px">Find Parking in<br><span style="background:linear-gradient(135deg,#f97316,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Seconds, Not Minutes</span></h1>
+  <p style="color:#94a3b8;font-size:1.1rem;max-width:540px;margin:0 auto 36px;line-height:1.7">GPS lot discovery · AI camera scanner · Vehicle-dimension space matching</p>
+  <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+    <a href="/pages/register.html" class="btn btn-p" style="font-size:15px;padding:13px 32px">🚀 Get Started Free</a>
+    <a href="/pages/login.html" class="btn btn-s" style="font-size:15px;padding:13px 32px">Sign In →</a>
+  </div>
+  <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:48px">
+    <span class="badge bb" style="padding:5px 14px">🏙️ Mumbai</span>
+    <span class="badge bb" style="padding:5px 14px">🏙️ Delhi</span>
+    <span class="badge bb" style="padding:5px 14px">🏙️ Bangalore</span>
+    <span class="badge bb" style="padding:5px 14px">🏙️ Jaipur</span>
+  </div>
+  <div class="grd">
+    <div class="card hov" style="padding:26px 20px;text-align:left"><div style="font-size:30px;margin-bottom:12px">📍</div><h3 class="fd" style="font-size:15px;margin-bottom:8px">GPS Discovery</h3><p style="color:#94a3b8;font-size:13px;line-height:1.6">Real-time nearby lot finder with Leaflet.js maps.</p></div>
+    <div class="card hov" style="padding:26px 20px;text-align:left"><div style="font-size:30px;margin-bottom:12px">🎫</div><h3 class="fd" style="font-size:15px;margin-bottom:8px">Instant Booking</h3><p style="color:#94a3b8;font-size:13px;line-height:1.6">Visual slot grid + QR confirmation in IST.</p></div>
+    <div class="card hov" style="padding:26px 20px;text-align:left"><div style="font-size:30px;margin-bottom:12px">🤖</div><h3 class="fd" style="font-size:15px;margin-bottom:8px">AI Parking Suite</h3><p style="color:#94a3b8;font-size:13px;line-height:1.6">Fallback finder · Camera scanner · Vehicle fit matcher.</p></div>
+  </div>
+</div>
+<footer style="text-align:center;padding:20px;color:#475569;font-size:13px;border-top:1px solid rgba(255,255,255,0.05)">SmartPark AI · Minor Project 2026 · Prathmesh Bhatt & Krish Menaria · JECRC University</footer>
+<script src="/js/api.js"></script><script>redirectIfAuth();</script>
+</body></html>

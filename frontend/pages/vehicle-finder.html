@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vehicle Finder — SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+.main{max-width:1200px;margin:0 auto;padding:28px 24px}
+.spb{display:flex;align-items:center;gap:6px;margin-bottom:26px;overflow-x:auto;padding-bottom:4px}
+.sp{display:flex;align-items:center;gap:6px;padding:6px 16px;border-radius:999px;font-size:12px;font-weight:700;font-family:'Syne',sans-serif;border:1px solid rgba(255,255,255,.08);white-space:nowrap;transition:all .3s}
+.sp.on{background:#f97316;border-color:#f97316;color:#fff}
+.sp.dn{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#4ade80}
+.sp.id{background:rgba(255,255,255,.04);color:#475569}
+.sc{width:26px;height:1px;background:rgba(255,255,255,.1);flex-shrink:0}
+.sec{display:none}.sec.on{display:block;animation:pIn .3s ease}
+.ct{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.cb{padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;border:1px solid transparent;transition:all .2s}
+.cb.on{background:#f97316;color:#fff}
+.cb:not(.on){background:rgba(255,255,255,.05);color:#64748b;border-color:rgba(255,255,255,.08)}
+.vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;max-height:270px;overflow-y:auto;padding-right:3px}
+.s1g{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.s2c{max-width:640px;margin:0 auto}
+.s3g{display:grid;grid-template-columns:2fr 3fr;gap:20px}
+@media(max-width:700px){.s1g,.s3g{grid-template-columns:1fr}.s2c{max-width:100%}}
+.dc{background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.2);border-radius:14px;padding:18px}
+.pr{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:500px){.pr{grid-template-columns:1fr}}
+.thn span{display:inline-block;animation:bl 1.2s infinite;font-size:18px}
+.thn span:nth-child(2){animation-delay:.2s}.thn span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.2}40%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="main pe">
+  <div style="margin-bottom:20px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+      <span class="badge bo" style="padding:5px 14px">🚗 Vehicle-Aware</span>
+      <span class="badge bg" style="padding:5px 14px">🇮🇳 50 Indian Vehicles</span>
+      <span class="badge bb" style="padding:5px 14px">📍 GPS Space Finder</span>
+    </div>
+    <h1 class="fd" style="font-size:26px;font-weight:800">Vehicle Smart Space Finder</h1>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">Identify your vehicle → GPS finds spaces that physically fit it</p>
+  </div>
+
+  <div class="spb">
+    <div class="sp on" id="p1">01 · Identify Vehicle</div>
+    <div class="sc"></div>
+    <div class="sp id" id="p2">02 · Confirm Details</div>
+    <div class="sc"></div>
+    <div class="sp id" id="p3">03 · Find Spaces</div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div id="s1" class="sec on">
+    <div class="s1g">
+      <!-- Camera -->
+      <div>
+        <h2 class="fd" style="font-size:17px;margin-bottom:4px">📷 Scan Your Vehicle</h2>
+        <p style="color:#64748b;font-size:12px;margin-bottom:12px">AI detects make, model & dimensions</p>
+        <div class="cam-wrap" id="vcw" style="max-height:280px">
+          <div class="cam-corner ctl"></div><div class="cam-corner ctr"></div>
+          <div class="cam-corner cbl"></div><div class="cam-corner cbr"></div>
+          <div class="cam-scan"></div>
+          <div class="cam-badge">● Point at your vehicle</div>
+          <video id="vcv" class="cam-video" autoplay playsinline muted></video>
+          <div id="vdo" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:20;border-radius:14px">
+            <div style="text-align:center"><div class="thn" style="margin-bottom:8px"><span>●</span><span>●</span><span>●</span></div><div class="fd" style="font-weight:700">Detecting...</div></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-p" style="flex:1;justify-content:center;padding:10px" onclick="scanVeh()">🔍 Detect Vehicle</button>
+          <button class="btn btn-s" style="padding:10px 12px" onclick="swCam()">🔁</button>
+          <label class="btn btn-s" style="padding:10px 12px;cursor:pointer">🖼️<input type="file" accept="image/*" onchange="upVeh(event)" style="display:none"></label>
+        </div>
+        <p style="text-align:center;color:#475569;font-size:12px;margin-top:10px">— or pick manually →</p>
+      </div>
+      <!-- Manual -->
+      <div>
+        <h2 class="fd" style="font-size:17px;margin-bottom:4px">🗂️ Pick Your Vehicle</h2>
+        <p style="color:#64748b;font-size:12px;margin-bottom:10px">50 legal Indian vehicles with real dimensions</p>
+        <div class="ct" id="cats">
+          <button class="cb on" onclick="fcat('all',this)">All</button>
+          <button class="cb" onclick="fcat('bike',this)">🏍️ Bikes</button>
+          <button class="cb" onclick="fcat('car',this)">🚗 Cars</button>
+          <button class="cb" onclick="fcat('suv',this)">🚙 SUVs</button>
+          <button class="cb" onclick="fcat('auto',this)">🛺 Autos</button>
+          <button class="cb" onclick="fcat('ev',this)">⚡ EVs</button>
+          <button class="cb" onclick="fcat('commercial',this)">🚐 Vans</button>
+        </div>
+        <div class="iw" style="margin-bottom:10px">
+          <span class="ii">🔎</span>
+          <input class="inp ic" placeholder="Search (Activa, Swift, Nexon...)" oninput="srch(this.value)">
+        </div>
+        <div class="vg" id="vg"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div id="s2" class="sec">
+    <div class="s2c">
+      <h2 class="fd" style="font-size:20px;margin-bottom:18px">Confirm Vehicle Details</h2>
+      <div class="dc" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="font-size:48px" id="ci">🚗</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+              <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block"></span>
+              <span style="color:#4ade80;font-size:11px;font-weight:600;font-family:'DM Mono',monospace" id="csrc">SELECTED</span>
+            </div>
+            <div class="fd" style="font-size:18px;font-weight:700" id="cn">—</div>
+            <div style="color:#64748b;font-size:13px;margin-top:3px" id="ct2">—</div>
+          </div>
+          <button class="btn btn-s btn-sm" onclick="goStep(1)">Change</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px">
+        <div class="stat-box" style="text-align:center"><div class="sl">↔ Length</div><div class="sv" style="font-size:20px" id="dL">—</div><div style="color:#64748b;font-size:11px">m</div></div>
+        <div class="stat-box" style="text-align:center"><div class="sl">↕ Width</div><div class="sv"  style="font-size:20px" id="dW">—</div><div style="color:#64748b;font-size:11px">m</div></div>
+        <div class="stat-box" style="text-align:center"><div class="sl">↑ Height</div><div class="sv" style="font-size:20px" id="dH">—</div><div style="color:#64748b;font-size:11px">m</div></div>
+      </div>
+      <div class="card" style="padding:18px;margin-bottom:20px">
+        <h3 class="fd" style="font-size:15px;margin-bottom:14px">Parking Preferences</h3>
+        <div class="pr">
+          <div><label class="lbl">Max Walking</label>
+            <select id="pw" class="inp"><option value="200">200m</option><option value="500" selected>500m</option><option value="1000">1km</option><option value="2000">2km</option></select></div>
+          <div><label class="lbl">Surface</label>
+            <select id="ps" class="inp"><option value="any">Any</option><option value="paved">Paved only</option><option value="concrete">Concrete</option></select></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer">
+          <input type="checkbox" id="pl" checked style="width:16px;height:16px;accent-color:#f97316">
+          <span style="font-size:13px;color:#cbd5e1">Show only legally designated / low-risk spots</span>
+        </label>
+      </div>
+      <button class="btn btn-p btn-w" style="padding:14px;font-size:15px" onclick="findSpaces()">📍 Find Spaces Near Me</button>
+    </div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div id="s3" class="sec">
+    <div style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);margin-bottom:20px;flex-wrap:wrap">
+      <span style="font-size:28px" id="s3i">🚗</span>
+      <div><div class="fd" style="font-weight:700" id="s3n">—</div><div style="color:#64748b;font-size:12px;font-family:'DM Mono',monospace" id="s3d">—</div></div>
+      <div style="margin-left:auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span class="badge bg" id="s3c">— spaces</span>
+        <button class="btn btn-s btn-sm" onclick="goStep(1)">Change Vehicle</button>
+      </div>
+    </div>
+    <div class="s3g">
+      <div>
+        <h2 class="fd" style="font-size:17px;margin-bottom:4px">Nearby Spaces</h2>
+        <p style="color:#64748b;font-size:12px;margin-bottom:12px">Sorted by fit score</p>
+        <div id="spl"></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h2 class="fd" style="font-size:17px;margin:0">Space Map</h2>
+          <div style="display:flex;gap:10px;font-size:11px;color:#64748b"><span>🟢 Best</span><span>🟠 Good</span><span>⚫ Tight</span></div>
+        </div>
+        <div id="spaceMap" style="margin-bottom:14px"></div>
+        <div id="spd" class="card" style="padding:16px;display:none">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div class="fd" style="font-weight:700;font-size:15px" id="dn">—</div>
+            <span class="badge" id="dfb">—</span>
+          </div>
+          <p style="color:#94a3b8;font-size:13px;margin-bottom:12px" id="dd">—</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;font-size:12px">
+            <div class="stat-box" style="padding:8px"><div class="sl">Surface</div><strong id="dsu">—</strong></div>
+            <div class="stat-box" style="padding:8px"><div class="sl">Walk</div><strong id="dw">—</strong></div>
+            <div class="stat-box" style="padding:8px"><div class="sl">Safety</div><strong id="dsa">—</strong></div>
+            <div class="stat-box" style="padding:8px"><div class="sl">Legal</div><strong id="dle">—</strong></div>
+          </div>
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#64748b">Fit Score</span><strong id="dfp">—</strong></div>
+            <div class="bar-track"><div class="bar-fill" id="dfb2" style="width:0%"></div></div>
+          </div>
+          <p style="color:#64748b;font-size:12px;font-style:italic" id="dno">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script>
+if(!requireAuth()){}
+renderNavbar('vehicle-finder');
+
+const VEH=[
+  {id:'activa',  name:'Honda Activa 6G',      cat:'bike',icon:'🛵',l:1.84,w:0.71,h:1.16,type:'Scooter'},
+  {id:'splendor',name:'Hero Splendor Plus',   cat:'bike',icon:'🏍️',l:1.98,w:0.73,h:1.07,type:'Commuter'},
+  {id:'pulsar',  name:'Bajaj Pulsar 150',     cat:'bike',icon:'🏍️',l:2.01,w:0.74,h:1.05,type:'Commuter'},
+  {id:'re350',   name:'RE Classic 350',        cat:'bike',icon:'🏍️',l:2.14,w:0.79,h:1.09,type:'Cruiser'},
+  {id:'dio',     name:'Honda Dio',             cat:'bike',icon:'🛵',l:1.84,w:0.70,h:1.11,type:'Scooter'},
+  {id:'jupiter', name:'TVS Jupiter',           cat:'bike',icon:'🛵',l:1.84,w:0.72,h:1.16,type:'Scooter'},
+  {id:'apache',  name:'TVS Apache RTR 160',   cat:'bike',icon:'🏍️',l:2.06,w:0.73,h:1.05,type:'Sports'},
+  {id:'ktm200',  name:'KTM Duke 200',          cat:'bike',icon:'🏍️',l:2.00,w:0.73,h:1.03,type:'Sports'},
+  {id:'cb350',   name:'Honda CB350',           cat:'bike',icon:'🏍️',l:2.19,w:0.80,h:1.11,type:'Cruiser'},
+  {id:'fascino', name:'Yamaha Fascino 125',    cat:'bike',icon:'🛵',l:1.82,w:0.67,h:1.09,type:'Scooter'},
+  {id:'himalayan',name:'RE Himalayan 450',     cat:'bike',icon:'🏍️',l:2.20,w:0.87,h:1.36,type:'Adventure'},
+  {id:'gixxer',  name:'Suzuki Gixxer SF 250', cat:'bike',icon:'🏍️',l:2.01,w:0.73,h:1.04,type:'Sports'},
+  {id:'alto',    name:'Maruti Alto K10',       cat:'car', icon:'🚗',l:3.53,w:1.49,h:1.48,type:'Hatchback'},
+  {id:'wagonr',  name:'Maruti WagonR',         cat:'car', icon:'🚗',l:3.65,w:1.62,h:1.67,type:'Hatchback'},
+  {id:'swift',   name:'Maruti Swift',          cat:'car', icon:'🚗',l:3.85,w:1.73,h:1.53,type:'Hatchback'},
+  {id:'i20',     name:'Hyundai i20',           cat:'car', icon:'🚗',l:4.04,w:1.78,h:1.49,type:'Hatchback'},
+  {id:'polo',    name:'Volkswagen Polo',       cat:'car', icon:'🚗',l:4.07,w:1.74,h:1.47,type:'Hatchback'},
+  {id:'dzire',   name:'Maruti Dzire',          cat:'car', icon:'🚗',l:3.99,w:1.73,h:1.52,type:'Sedan'},
+  {id:'amaze',   name:'Honda Amaze',           cat:'car', icon:'🚗',l:3.99,w:1.69,h:1.50,type:'Sedan'},
+  {id:'city',    name:'Honda City',            cat:'car', icon:'🚗',l:4.55,w:1.75,h:1.49,type:'Sedan'},
+  {id:'verna',   name:'Hyundai Verna',         cat:'car', icon:'🚗',l:4.53,w:1.77,h:1.47,type:'Sedan'},
+  {id:'nexon',   name:'Tata Nexon',            cat:'suv', icon:'🚙',l:3.99,w:1.81,h:1.62,type:'Compact SUV'},
+  {id:'brezza',  name:'Maruti Brezza',         cat:'suv', icon:'🚙',l:3.99,w:1.79,h:1.64,type:'Compact SUV'},
+  {id:'venue',   name:'Hyundai Venue',         cat:'suv', icon:'🚙',l:3.99,w:1.77,h:1.62,type:'Compact SUV'},
+  {id:'creta',   name:'Hyundai Creta',         cat:'suv', icon:'🚙',l:4.30,w:1.79,h:1.63,type:'Mid SUV'},
+  {id:'seltos',  name:'Kia Seltos',            cat:'suv', icon:'🚙',l:4.32,w:1.80,h:1.63,type:'Mid SUV'},
+  {id:'scorpio', name:'Mahindra Scorpio-N',    cat:'suv', icon:'🚙',l:4.66,w:1.92,h:1.87,type:'Full SUV'},
+  {id:'fortuner',name:'Toyota Fortuner',       cat:'suv', icon:'🚙',l:4.80,w:1.86,h:1.84,type:'Full SUV'},
+  {id:'innova',  name:'Toyota Innova Crysta',  cat:'suv', icon:'🚙',l:4.73,w:1.83,h:1.79,type:'MPV'},
+  {id:'harrier', name:'Tata Harrier',          cat:'suv', icon:'🚙',l:4.60,w:1.89,h:1.71,type:'Mid SUV'},
+  {id:'auto3w',  name:'Bajaj RE Auto (3W)',    cat:'auto',icon:'🛺',l:2.63,w:1.31,h:1.71,type:'Auto Rickshaw'},
+  {id:'eauto',   name:'Mahindra Treo eAuto',  cat:'auto',icon:'🛺',l:2.85,w:1.41,h:1.73,type:'e-Rickshaw'},
+  {id:'piaggio', name:'Piaggio Ape City',      cat:'auto',icon:'🛺',l:2.75,w:1.30,h:1.74,type:'Cargo 3W'},
+  {id:'tiagoev', name:'Tata Tiago EV',         cat:'ev',  icon:'⚡',l:3.77,w:1.65,h:1.53,type:'EV Hatchback'},
+  {id:'nexonev', name:'Tata Nexon EV',         cat:'ev',  icon:'⚡',l:3.99,w:1.81,h:1.62,type:'EV SUV'},
+  {id:'zsev',    name:'MG ZS EV',              cat:'ev',  icon:'⚡',l:4.31,w:1.81,h:1.63,type:'EV SUV'},
+  {id:'konaev',  name:'Hyundai Kona EV',       cat:'ev',  icon:'⚡',l:4.18,w:1.80,h:1.57,type:'EV SUV'},
+  {id:'olas1',   name:'Ola S1 Pro',            cat:'ev',  icon:'⚡',l:1.86,w:0.72,h:1.16,type:'EV Scooter'},
+  {id:'iqube',   name:'TVS iQube Electric',    cat:'ev',  icon:'⚡',l:1.79,w:0.68,h:1.14,type:'EV Scooter'},
+  {id:'chetak',  name:'Bajaj Chetak Electric', cat:'ev',  icon:'⚡',l:1.80,w:0.64,h:1.13,type:'EV Scooter'},
+  {id:'eeco',    name:'Maruti Eeco',            cat:'commercial',icon:'🚐',l:3.68,w:1.48,h:1.72,type:'Van'},
+  {id:'omni',    name:'Maruti Omni',            cat:'commercial',icon:'🚐',l:3.48,w:1.45,h:1.66,type:'Van'},
+  {id:'bolero',  name:'Mahindra Bolero',        cat:'commercial',icon:'🚐',l:4.17,w:1.67,h:1.90,type:'Utility'},
+  {id:'supro',   name:'Mahindra Supro Van',     cat:'commercial',icon:'🚐',l:3.64,w:1.53,h:1.85,type:'Mini Van'},
+];
+
+let curCat='all',selV=null,vStream=null,vFacing='environment';
+
+function drawGrid(list){
+  document.getElementById('vg').innerHTML=list.map(v=>`
+    <div class="veh-card${selV?.id===v.id?' active':''}" id="vc-${v.id}" onclick="pickV('${v.id}')">
+      <div style="font-size:22px;margin-bottom:4px">${v.icon}</div>
+      <div style="font-size:10px;font-weight:700;font-family:'Syne',sans-serif;color:#e2e8f0;line-height:1.3">${v.name.split(' ').slice(-2).join(' ')}</div>
+      <div style="font-size:9px;color:#475569;font-family:'DM Mono',monospace;margin-top:2px">${v.l}m</div>
+    </div>`).join('');
+}
+
+function fcat(cat,btn){curCat=cat;document.querySelectorAll('.cb').forEach(b=>b.classList.remove('on'));btn.classList.add('on');drawGrid(cat==='all'?VEH:VEH.filter(v=>v.cat===cat));}
+function srch(q){const l=q.toLowerCase();drawGrid(VEH.filter(v=>(curCat==='all'||v.cat===curCat)&&(v.name.toLowerCase().includes(l)||v.type.toLowerCase().includes(l))));}
+function pickV(id){selV=VEH.find(v=>v.id===id);drawGrid(curCat==='all'?VEH:VEH.filter(v=>v.cat===curCat));showToast(selV.icon+' '+selV.name+' selected!','success');setTimeout(()=>loadS2('Manual Selection'),500);}
+
+async function startVCam(){
+  try{if(vStream)vStream.getTracks().forEach(t=>t.stop());vStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:vFacing,width:{ideal:1280}}});document.getElementById('vcv').srcObject=vStream;}
+  catch{showToast('Camera denied — pick manually','error');}
+}
+function swCam(){vFacing=vFacing==='environment'?'user':'environment';startVCam();}
+
+async function scanVeh(){
+  const v=document.getElementById('vcv');if(!v.srcObject){showToast('Camera not started','error');return;}
+  const c=document.createElement('canvas');c.width=v.videoWidth||640;c.height=v.videoHeight||480;c.getContext('2d').drawImage(v,0,0);
+  document.getElementById('vdo').style.display='flex';
+  await detectV(c.toDataURL('image/jpeg',0.85).split(',')[1]);
+}
+
+async function upVeh(e){
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=async ev=>{document.getElementById('vdo').style.display='flex';await detectV(ev.target.result.split(',')[1]);};
+  r.readAsDataURL(f);
+}
+
+async function detectV(b64){
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:600,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}},
+        {type:'text',text:`Identify the vehicle in this image. Respond ONLY with JSON (no markdown):
+{"vehicleName":"Brand+Model","vehicleType":"type","category":"bike|car|suv|auto|ev|commercial","icon":"emoji","length":number,"width":number,"height":number}
+If no vehicle visible use vehicleName:"Unknown" with typical car dimensions.`}
+      ]}]})
+    });
+    const data=await resp.json();
+    const r=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+    document.getElementById('vdo').style.display='none';
+    const match=VEH.find(v=>r.vehicleName.toLowerCase().includes(v.name.split(' ').pop().toLowerCase()));
+    selV=match?{...match}:{id:'custom',name:r.vehicleName,cat:r.category,icon:r.icon,l:r.length,w:r.width,h:r.height,type:r.vehicleType};
+    showToast('Detected: '+selV.name,'success');
+    loadS2('AI Camera Scan');
+  }catch(e){document.getElementById('vdo').style.display='none';showToast('Detection failed — pick manually','error');}
+}
+
+function goStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('s'+i).classList.toggle('on',i===n);
+    const p=document.getElementById('p'+i);
+    p.className='sp '+(i<n?'dn':i===n?'on':'id');
+  });
+}
+
+function loadS2(src){
+  if(!selV)return;
+  document.getElementById('ci').textContent=selV.icon;
+  document.getElementById('cn').textContent=selV.name;
+  document.getElementById('ct2').textContent=selV.type+' · '+selV.cat.toUpperCase();
+  document.getElementById('csrc').textContent=src.toUpperCase();
+  document.getElementById('dL').textContent=selV.l;
+  document.getElementById('dW').textContent=selV.w;
+  document.getElementById('dH').textContent=selV.h;
+  goStep(2);
+}
+
+let sMap=null,sMks=[],_sp=[];
+
+function findSpaces(){
+  if(!navigator.geolocation){showToast('Geolocation not supported','error');return;}
+  showToast('📍 Detecting location...','info');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const{latitude:lat,longitude:lng}=pos.coords;
+    goStep(3);
+    document.getElementById('s3i').textContent=selV.icon;
+    document.getElementById('s3n').textContent=selV.name;
+    document.getElementById('s3d').textContent=selV.l+'m × '+selV.w+'m × '+selV.h+'m';
+
+    if(!sMap){sMap=L.map('spaceMap').setView([lat,lng],15);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:19}).addTo(sMap);}
+    else sMap.setView([lat,lng],15);
+    L.circleMarker([lat,lng],{radius:8,color:'#f97316',fillColor:'#f97316',fillOpacity:.9}).addTo(sMap).bindPopup('📍 You');
+
+    const prefs={mw:parseInt(document.getElementById('pw').value),sf:document.getElementById('ps').value,lo:document.getElementById('pl').checked};
+    try{
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:`You are an AI parking advisor for Indian urban roads.
+
+Vehicle: ${selV.name} | ${selV.type} | ${selV.l}m × ${selV.w}m × ${selV.h}m
+GPS: lat ${lat.toFixed(4)}, lng ${lng.toFixed(4)}
+Prefs: max walk ${prefs.mw}m, surface: ${prefs.sf}, legal only: ${prefs.lo}
+
+Generate 5 realistic nearby parking spaces (road shoulders, service lanes, society compounds, open grounds, market side lanes).
+
+Respond ONLY with a JSON array (no markdown):
+[{"name":"spot name","description":"1 sentence","lat":number,"lng":number,"surfaceType":"Paved|Concrete|Gravel|Mud","safetyScore":1-10,"legalStatus":"Designated|Permitted|Undesignated|Restricted","legalNote":"short note","walkingMeters":50-${prefs.mw},"fitScore":0-100,"fitNote":"one sentence"}]
+
+Make lat/lng realistic offsets (0.001-0.008 degrees). fitScore must reflect how ${selV.name} (${selV.l}m × ${selV.w}m) fits.`}]})
+      });
+      const data=await resp.json();
+      const spaces=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+      renderSpaces(spaces,lat,lng);
+    }catch(e){showToast('Space finder failed: '+e.message,'error');}
+  },()=>showToast('Location denied','error'));
+}
+
+function renderSpaces(sp,ul,ulng){
+  _sp=sp.sort((a,b)=>b.fitScore-a.fitScore);
+  document.getElementById('s3c').textContent=_sp.length+' spaces found';
+  sMks.forEach(m=>sMap.removeLayer(m));sMks=[];
+
+  document.getElementById('spl').innerHTML=_sp.map((s,i)=>{
+    const fc=s.fitScore>=75?'#22c55e':s.fitScore>=50?'#f97316':'#64748b';
+    const lbc=s.legalStatus==='Designated'?'bg':s.legalStatus==='Permitted'?'bo':'br';
+    return `<div class="space-card${i===0?' best':''}" id="spc-${i}" onclick="selSpace(${i})" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div style="flex:1;margin-right:8px">${i===0?'<span class="badge bg" style="margin-bottom:4px;display:inline-block">⭐ Best Fit</span><br>':''}<div style="font-weight:700;font-size:14px">${s.name}</div><div style="color:#64748b;font-size:12px;margin-top:2px">${s.description}</div></div>
+        <div style="text-align:right;flex-shrink:0"><div class="fd" style="font-weight:800;font-size:20px;color:${fc}">${s.fitScore}%</div><div style="color:#64748b;font-size:10px">fit</div></div>
+      </div>
+      <div class="bar-track" style="margin-bottom:8px"><div class="bar-fill" style="width:${s.fitScore}%;background:${fc}"></div></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:#64748b">
+        <span>🚶 ${s.walkingMeters}m</span><span>🛤️ ${s.surfaceType}</span>
+        <span class="badge ${lbc}" style="font-size:10px">${s.legalStatus}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  _sp.forEach((s,i)=>{
+    const fc=s.fitScore>=75?'#22c55e':s.fitScore>=50?'#f97316':'#64748b';
+    const la=parseFloat(s.lat)||(ul+(Math.random()-.5)*.01);
+    const ln=parseFloat(s.lng)||(ulng+(Math.random()-.5)*.01);
+    _sp[i]._la=la;_sp[i]._ln=ln;
+    const mi=L.divIcon({className:'',html:'<div style="background:'+fc+';color:#fff;padding:3px 8px;border-radius:7px;font-size:11px;font-weight:700;font-family:Syne,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.5)">'+(i===0?'⭐':'🅿️')+' '+s.fitScore+'%</div>',iconAnchor:[20,14]});
+    const m=L.marker([la,ln],{icon:mi}).addTo(sMap).bindPopup('<b>'+s.name+'</b><br>Fit: '+s.fitScore+'%<br>'+s.legalNote).on('click',()=>selSpace(i));
+    sMks.push(m);
+  });
+  selSpace(0);
+}
+
+function selSpace(i){
+  const s=_sp[i];if(!s)return;
+  document.querySelectorAll('.space-card').forEach((c,ci)=>c.classList.toggle('sel',ci===i));
+  if(sMap&&s._la&&s._ln)sMap.flyTo([s._la,s._ln],16,{duration:1});
+  const fc=s.fitScore>=75?'#4ade80':s.fitScore>=50?'#fb923c':'#94a3b8';
+  const lc=s.legalStatus==='Designated'?'#4ade80':s.legalStatus==='Permitted'?'#fb923c':'#f87171';
+  document.getElementById('spd').style.display='block';
+  document.getElementById('dn').textContent=s.name;
+  document.getElementById('dfb').className='badge '+(s.fitScore>=75?'bg':s.fitScore>=50?'bo':'br');
+  document.getElementById('dfb').textContent=s.fitScore+'% fit';
+  document.getElementById('dd').textContent=s.description;
+  document.getElementById('dsu').textContent=s.surfaceType;
+  document.getElementById('dw').textContent=s.walkingMeters+'m';
+  document.getElementById('dsa').textContent=s.safetyScore+'/10';
+  document.getElementById('dsa').style.color=s.safetyScore>=7?'#4ade80':s.safetyScore>=4?'#fb923c':'#f87171';
+  document.getElementById('dle').textContent=s.legalStatus;
+  document.getElementById('dle').style.color=lc;
+  document.getElementById('dfp').textContent=s.fitScore+'%';
+  document.getElementById('dfp').style.color=fc;
+  document.getElementById('dfb2').style.width=s.fitScore+'%';
+  document.getElementById('dfb2').style.background=fc;
+  document.getElementById('dno').textContent='💡 '+s.fitNote;
+}
+
+drawGrid(VEH);
+startVCam();
+</script>
+</body></html>

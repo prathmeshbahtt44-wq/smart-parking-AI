@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Camera Scanner — SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.main{max-width:1100px;margin:0 auto;padding:28px 24px}
+.gr{display:grid;grid-template-columns:3fr 2fr;gap:22px}
+@media(max-width:750px){.gr{grid-template-columns:1fr}}
+.mb{display:flex;gap:6px;padding:5px;background:rgba(255,255,255,.04);border-radius:12px;border:1px solid rgba(255,255,255,.07);margin-bottom:14px}
+.mb button{flex:1;padding:9px;border-radius:9px;font-size:13px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;border:none;transition:all .2s;color:#64748b;background:transparent}
+.mb button.on{background:linear-gradient(135deg,#f97316,#ea580c);color:#fff}
+.cr{position:relative;width:80px;height:80px;flex-shrink:0}
+.cr svg{transform:rotate(-90deg)}
+.rbg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:7}
+.rf{fill:none;stroke-width:7;stroke-linecap:round;transition:stroke-dashoffset 1.2s ease}
+.rl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:16px}
+.zt{padding:4px 12px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block}
+.zs{background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.25)}
+.zm{background:rgba(249,115,22,.12);color:#fb923c;border:1px solid rgba(249,115,22,.25)}
+.zr{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.ft{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);padding:4px 10px;border-radius:6px;font-size:11px;font-family:'DM Mono',monospace}
+.ov{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:20;border-radius:14px}
+.th span{display:inline-block;animation:bl 1.2s infinite;font-size:20px}
+.th span:nth-child(2){animation-delay:.2s}.th span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.2}40%{opacity:1}}
+.ht{width:52px;height:52px;border-radius:8px;object-fit:cover;border:2px solid transparent;cursor:pointer;transition:border-color .2s}
+.ht:hover{border-color:#f97316}
+</style>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="main pe">
+  <div style="margin-bottom:22px">
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <span class="badge bo" style="padding:5px 14px">🤖 Vision AI</span>
+      <span class="badge bb" style="padding:5px 14px">📷 Live Camera</span>
+    </div>
+    <h1 class="fd" style="font-size:26px;font-weight:800">AI Camera Space Scanner</h1>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">Point at any road or open area — AI detects parking suitability instantly</p>
+  </div>
+
+  <div class="gr">
+    <!-- LEFT: Camera -->
+    <div>
+      <div class="mb">
+        <button class="on" id="mC" onclick="setMode('cam')">📷 Live Camera</button>
+        <button id="mU" onclick="setMode('upload')">🖼️ Upload Photo</button>
+      </div>
+
+      <div class="cam-wrap" id="cw">
+        <div class="cam-corner ctl"></div><div class="cam-corner ctr"></div>
+        <div class="cam-corner cbl"></div><div class="cam-corner cbr"></div>
+        <div class="cam-scan" id="csl"></div>
+        <div class="cam-badge">● LIVE — Point at parking area</div>
+        <video id="vid" class="cam-video" autoplay playsinline muted></video>
+        <div id="uph" style="display:none;width:100%;height:100%;align-items:center;justify-content:center;flex-direction:column;gap:10px;background:#0b1120;cursor:pointer" onclick="document.getElementById('fi').click()">
+          <div style="font-size:44px">🖼️</div>
+          <div class="fd" style="font-weight:700">Tap to upload photo</div>
+          <div style="color:#64748b;font-size:12px">JPG, PNG, WEBP</div>
+        </div>
+        <input type="file" id="fi" accept="image/*" style="display:none" onchange="handleUp(event)">
+        <!-- Captured overlay -->
+        <div id="co" style="display:none;position:absolute;inset:0;z-index:15;border-radius:14px;overflow:hidden">
+          <img id="ci" style="width:100%;height:100%;object-fit:cover">
+          <div class="ov" id="ao" style="display:none">
+            <div style="text-align:center">
+              <div class="th" style="margin-bottom:10px"><span>●</span><span>●</span><span>●</span></div>
+              <div class="fd" style="font-weight:700;font-size:16px">AI Analyzing...</div>
+              <div style="color:#94a3b8;font-size:12px;margin-top:4px">Detecting spaces & surfaces</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button id="sb" class="btn btn-p" style="flex:1;justify-content:center;padding:12px" onclick="capture()">📷 Scan This Frame</button>
+        <button id="rb" class="btn btn-s" style="padding:12px 18px;display:none" onclick="retake()">🔄 Retake</button>
+        <button class="btn btn-s" style="padding:12px 14px" onclick="switchCam()" title="Switch camera">🔁</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;padding:12px;border-radius:10px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2)">
+        <span style="color:#60a5fa;font-size:16px">💡</span>
+        <p style="font-size:12px;color:#94a3b8">Best results: good lighting, capture full width of space, point at road/ground level</p>
+      </div>
+
+      <div id="hs" style="display:none;margin-top:14px">
+        <div style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600">Recent Scans</div>
+        <div id="hst" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div>
+      <div id="ip" class="card" style="padding:28px;text-align:center">
+        <div style="font-size:48px;margin-bottom:14px">🔍</div>
+        <h3 class="fd" style="font-size:17px;margin-bottom:8px">Ready to Scan</h3>
+        <p style="color:#64748b;font-size:13px;margin-bottom:18px;line-height:1.6">Point camera at any open area and tap Scan.</p>
+        <div style="text-align:left">
+          <div style="font-size:13px;color:#64748b;margin-bottom:6px">✓ Empty road shoulders</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:6px">✓ Open grounds & fields</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:6px">✓ Service lanes</div>
+          <div style="font-size:13px;color:#94a3b8">⚠ Verifies legality & safety</div>
+        </div>
+      </div>
+
+      <div id="rp" style="display:none">
+        <div class="card" style="padding:18px;margin-bottom:12px">
+          <div style="display:flex;gap:14px;align-items:center">
+            <div class="cr">
+              <svg viewBox="0 0 80 80" width="80" height="80">
+                <circle class="rbg" cx="40" cy="40" r="33"/>
+                <circle class="rf" id="rng" cx="40" cy="40" r="33" stroke-dasharray="207.3" stroke-dashoffset="207.3"/>
+              </svg>
+              <div class="rl" id="cl">—</div>
+            </div>
+            <div style="flex:1">
+              <div id="vt" style="margin-bottom:6px">—</div>
+              <div id="vti" class="fd" style="font-size:17px;font-weight:700;color:#fff">—</div>
+              <div id="vsu" style="color:#64748b;font-size:12px;margin-top:3px">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px">AI Analysis</div>
+          <p id="at" style="font-size:13px;color:#e2e8f0;line-height:1.6">—</p>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px">
+          <div style="font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:10px">Detected Features</div>
+          <div id="ft" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px">
+          <div class="stat-box" style="padding:12px;text-align:center"><div class="sl">Space</div><div class="sv" style="font-size:16px" id="mSp">—</div></div>
+          <div class="stat-box" style="padding:12px;text-align:center"><div class="sl">Safety</div><div class="sv" style="font-size:16px" id="mSa">—</div></div>
+          <div class="stat-box" style="padding:12px;text-align:center"><div class="sl">Legal</div><div class="sv" style="font-size:16px" id="mLe">—</div></div>
+        </div>
+        <div id="rec" class="card" style="padding:14px;border-left:4px solid #f97316">
+          <div style="font-size:11px;color:#f97316;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">AI Recommendation</div>
+          <p id="rt" style="font-size:13px;color:#e2e8f0;line-height:1.5">—</p>
+        </div>
+      </div>
+
+      <div id="pe" class="card" style="padding:28px;text-align:center;display:none">
+        <div style="font-size:36px;margin-bottom:10px">🚫</div>
+        <h3 class="fd" style="font-size:16px;margin-bottom:8px">Camera Access Needed</h3>
+        <p style="color:#64748b;font-size:13px;margin-bottom:16px">Allow camera access in browser settings.</p>
+        <button onclick="startCam()" class="btn btn-p btn-w">Retry Camera</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script>
+if(!requireAuth()){}
+renderNavbar('camera-scanner');
+
+let stream=null,facing='environment',mode='cam',hist=[];
+
+async function startCam(){
+  document.getElementById('pe').style.display='none';
+  try{
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1280}}});
+    const v=document.getElementById('vid');v.srcObject=stream;v.style.display='block';
+    document.getElementById('uph').style.display='none';
+    document.getElementById('csl').style.display='block';
+  }catch{
+    document.getElementById('pe').style.display='block';
+    document.getElementById('vid').style.display='none';
+    document.getElementById('csl').style.display='none';
+  }
+}
+
+function switchCam(){facing=facing==='environment'?'user':'environment';startCam();}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('mC').classList.toggle('on',m==='cam');
+  document.getElementById('mU').classList.toggle('on',m==='upload');
+  if(m==='cam'){document.getElementById('uph').style.display='none';document.getElementById('vid').style.display='block';document.getElementById('csl').style.display='block';startCam();}
+  else{if(stream)stream.getTracks().forEach(t=>t.stop());document.getElementById('vid').style.display='none';document.getElementById('uph').style.display='flex';document.getElementById('csl').style.display='none';}
+}
+
+function handleUp(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>analyze(ev.target.result);r.readAsDataURL(f);}
+
+function capture(){
+  if(mode==='upload'){document.getElementById('fi').click();return;}
+  const v=document.getElementById('vid');
+  if(!v.srcObject){showToast('Camera not started','error');return;}
+  const c=document.createElement('canvas');
+  c.width=v.videoWidth||640;c.height=v.videoHeight||480;
+  c.getContext('2d').drawImage(v,0,0);
+  analyze(c.toDataURL('image/jpeg',0.85));
+}
+
+async function analyze(dataUrl){
+  document.getElementById('ci').src=dataUrl;
+  document.getElementById('co').style.display='block';
+  document.getElementById('ao').style.display='flex';
+  document.getElementById('sb').style.display='none';
+  document.getElementById('rb').style.display='block';
+  document.getElementById('ip').style.display='none';
+  document.getElementById('rp').style.display='none';
+  document.getElementById('pe').style.display='none';
+
+  const b64=dataUrl.split(',')[1];
+  const mime=dataUrl.split(';')[0].split(':')[1];
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:900,messages:[{role:'user',content:[
+        {type:'image',source:{type:'base64',media_type:mime,data:b64}},
+        {type:'text',text:`You are an AI parking space analyzer for Indian roads. Analyze this image.
+Respond ONLY with valid JSON (no markdown, no backticks):
+{"verdict":"SAFE"|"MODERATE"|"RISKY"|"NO_SPACE","confidence":0-100,"title":"short verdict","subtitle":"one clause","analysis":"2-3 sentences","features":["f1","f2","f3","f4"],"spaceRating":"Small"|"Medium"|"Large"|"None","safetyRating":"Low"|"Medium"|"High","legalLikelihood":"Unlikely"|"Possible"|"Likely","recommendation":"one actionable sentence"}`
+      }]}]})
+    });
+    const data=await resp.json();
+    const r=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
+    document.getElementById('ao').style.display='none';
+    showResult(r,dataUrl);
+  }catch(e){
+    document.getElementById('ao').style.display='none';
+    showToast('AI analysis failed: '+e.message,'error');
+    retake();
+  }
+}
+
+function showResult(r,img){
+  document.getElementById('rp').style.display='block';
+  const vm={SAFE:{cls:'zs',e:'✅',c:'#22c55e'},MODERATE:{cls:'zm',e:'⚠️',c:'#f97316'},RISKY:{cls:'zr',e:'🚨',c:'#ef4444'},NO_SPACE:{cls:'zr',e:'🚫',c:'#ef4444'}};
+  const v=vm[r.verdict]||vm.MODERATE;
+  const conf=Math.max(0,Math.min(100,r.confidence||0));
+  const off=207.3-(conf/100)*207.3;
+  document.getElementById('rng').style.strokeDashoffset=off;
+  document.getElementById('rng').style.stroke=v.c;
+  document.getElementById('cl').textContent=conf+'%';
+  document.getElementById('cl').style.color=v.c;
+  document.getElementById('vt').innerHTML='<span class="zt '+v.cls+'">'+v.e+' '+(r.verdict||'').replace('_',' ')+'</span>';
+  document.getElementById('vti').textContent=r.title||'Space Detected';
+  document.getElementById('vsu').textContent=r.subtitle||'';
+  document.getElementById('at').textContent=r.analysis||'—';
+  document.getElementById('ft').innerHTML=(r.features||[]).map(f=>'<span class="ft">'+f+'</span>').join('');
+  const sc={High:'#4ade80',Medium:'#fb923c',Low:'#f87171'};
+  const lc={Likely:'#4ade80',Possible:'#fb923c',Unlikely:'#f87171'};
+  document.getElementById('mSp').textContent=r.spaceRating||'—';
+  document.getElementById('mSa').textContent=r.safetyRating||'—';
+  document.getElementById('mSa').style.color=sc[r.safetyRating]||'#fff';
+  document.getElementById('mLe').textContent=r.legalLikelihood||'—';
+  document.getElementById('mLe').style.color=lc[r.legalLikelihood]||'#fff';
+  document.getElementById('rt').textContent=r.recommendation||'—';
+  document.getElementById('rec').style.borderLeftColor=v.c;
+  hist.unshift({img,r});if(hist.length>6)hist.pop();
+  renderHist();
+}
+
+function renderHist(){
+  const colors={SAFE:'#22c55e',MODERATE:'#f97316',RISKY:'#ef4444',NO_SPACE:'#ef4444'};
+  document.getElementById('hs').style.display='block';
+  document.getElementById('hst').innerHTML=hist.map((h,i)=>`<div style="position:relative;flex-shrink:0" onclick="replay(${i})"><img src="${h.img}" class="ht"><span style="position:absolute;bottom:3px;right:3px;width:10px;height:10px;border-radius:50%;background:${colors[h.r.verdict]||'#fff'};border:1.5px solid #000;display:block"></span></div>`).join('');
+}
+
+function replay(i){
+  const h=hist[i];
+  document.getElementById('ci').src=h.img;
+  document.getElementById('co').style.display='block';
+  document.getElementById('ao').style.display='none';
+  document.getElementById('sb').style.display='none';
+  document.getElementById('rb').style.display='block';
+  document.getElementById('ip').style.display='none';
+  showResult(h.r,h.img);
+}
+
+function retake(){
+  document.getElementById('co').style.display='none';
+  document.getElementById('sb').style.display='block';
+  document.getElementById('rb').style.display='none';
+  document.getElementById('ip').style.display='block';
+  document.getElementById('rp').style.display='none';
+  if(mode==='cam')startCam();
+}
+
+startCam();
+</script>
+</body></html>

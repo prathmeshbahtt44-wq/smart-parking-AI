@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Book Slot — SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.main{max-width:1000px;margin:0 auto;padding:28px 24px}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:600px){.fr{grid-template-columns:1fr}}
+.bp{display:none}
+</style>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="main pe">
+  <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin-bottom:20px">
+    <a href="/pages/map.html" style="color:#64748b;text-decoration:none">Find Parking</a>
+    <span>›</span><span id="bc" style="color:#fff">Loading...</span>
+  </div>
+
+  <div id="lh" class="card" style="padding:22px;margin-bottom:22px">
+    <div style="display:flex;justify-content:center;padding:20px"><div class="loader"></div></div>
+  </div>
+
+  <div class="card" style="padding:22px;margin-bottom:22px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <h2 class="fd" style="font-size:18px">Select a Slot</h2>
+      <div style="display:flex;gap:14px;font-size:12px;color:#64748b">
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(34,197,94,.25);margin-right:4px"></span>Free</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(239,68,68,.2);margin-right:4px"></span>Occupied</span>
+        <span><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:rgba(249,115,22,.3);margin-right:4px"></span>Selected</span>
+      </div>
+    </div>
+    <div id="sg" class="slot-grid">
+      <div style="grid-column:1/-1;display:flex;justify-content:center;padding:30px"><div class="loader"></div></div>
+    </div>
+  </div>
+
+  <div id="bpanel" class="card bp" style="padding:22px;margin-bottom:22px">
+    <h2 class="fd" style="font-size:18px;margin-bottom:18px">Confirm Booking</h2>
+    <div class="fr" style="margin-bottom:14px">
+      <div><label class="lbl">Selected Slot</label><input id="sd" class="inp" readonly></div>
+      <div><label class="lbl">Vehicle Number</label><input id="vn" class="inp" placeholder="RJ14AB1234" style="text-transform:uppercase"></div>
+    </div>
+    <div class="fr" style="margin-bottom:18px">
+      <div>
+        <label class="lbl">Duration</label>
+        <select id="hr" class="inp">
+          <option value="1">1 Hour</option><option value="2">2 Hours</option>
+          <option value="3">3 Hours</option><option value="4">4 Hours</option>
+          <option value="6">6 Hours</option><option value="8">8 Hours</option>
+          <option value="12">12 Hours</option><option value="24">24 Hours</option>
+        </select>
+      </div>
+      <div><label class="lbl">Total Cost</label><div id="cd" class="inp" style="color:#f97316;font-weight:700;cursor:default">—</div></div>
+    </div>
+    <button id="bb" class="btn btn-p btn-w" style="padding:13px">🎫 Confirm Booking</button>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="cm" class="modal-bg" style="display:none">
+  <div class="card modal" style="padding:32px;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">🎉</div>
+    <h2 class="fd" style="font-size:22px;margin-bottom:6px">Booking Confirmed!</h2>
+    <p style="color:#64748b;font-size:13px;margin-bottom:20px">Show this QR at the parking entrance</p>
+    <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;display:inline-block;margin-bottom:10px" id="qrc"></div>
+    <div class="fd" style="font-size:18px;letter-spacing:3px;color:#f97316;margin-bottom:18px" id="qrt"></div>
+    <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:16px;text-align:left;margin-bottom:20px;font-size:13px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div><span style="color:#64748b">Lot</span><br><strong id="cL">—</strong></div>
+        <div><span style="color:#64748b">Slot</span><br><strong id="cS">—</strong></div>
+        <div><span style="color:#64748b">Vehicle</span><br><strong id="cV">—</strong></div>
+        <div><span style="color:#64748b">Duration</span><br><strong id="cD">—</strong></div>
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:10px;margin-top:10px;display:flex;justify-content:space-between">
+        <span style="color:#64748b">Total</span><strong style="color:#f97316;font-size:16px" id="cT">—</strong>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <a href="/pages/bookings.html" class="btn btn-p" style="flex:1;justify-content:center">View Bookings</a>
+      <button onclick="document.getElementById('cm').style.display='none'" class="btn btn-s" style="flex:1">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script>
+if(!requireAuth()){}
+renderNavbar('map');
+const params=new URLSearchParams(location.search);
+const lotId=params.get('id');
+if(!lotId)location.href='/pages/map.html';
+
+let selSlot=null,pph=0;
+
+async function loadLot(){
+  try{
+    const[lr,sr]=await Promise.all([Parking.getById(lotId),Parking.getSlots(lotId)]);
+    const lot=lr.lot;
+    pph=lot.price_per_hour;
+    document.getElementById('bc').textContent=lot.name;
+    document.title=lot.name+' — SmartPark AI';
+    const avail=lot.availableSlots;
+    document.getElementById('lh').innerHTML=`
+      <div style="display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px">
+        <div><h1 class="fd" style="font-size:22px;font-weight:800">${lot.name}</h1><p style="color:#64748b;font-size:13px;margin-top:4px">📍 ${lot.location}</p></div>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <div class="stat-box" style="padding:12px 20px;text-align:center"><div class="sl">Available</div><div class="sv" style="font-size:22px;color:${avail>10?'#4ade80':avail>0?'#fbbf24':'#f87171'}">${avail}/${lot.total_slots}</div></div>
+          <div class="stat-box" style="padding:12px 20px;text-align:center"><div class="sl">Price/Hr</div><div class="sv" style="font-size:22px;color:#f97316">${fmtINR(lot.price_per_hour)}</div></div>
+          <div class="stat-box" style="padding:12px 20px;text-align:center"><div class="sl">Vehicle</div><div class="sv" style="font-size:18px">${lot.vehicle_type}</div></div>
+        </div>
+      </div>`;
+    document.getElementById('sg').innerHTML=sr.slots.map(s=>`
+      <div class="slot ${s.is_occupied?'so':'sf'}" id="sl-${s.slot_id}"
+           data-id="${s.slot_id}" data-num="${s.slot_number}" data-occ="${s.is_occupied?1:0}"
+           onclick="pick(this)">${s.slot_number}</div>`).join('');
+  }catch(e){showToast('Failed: '+e.message,'error');}
+}
+
+function pick(el){
+  if(el.dataset.occ==='1')return;
+  if(selSlot){const p=document.getElementById('sl-'+selSlot.id);if(p){p.classList.remove('ss');p.classList.add('sf');}}
+  el.classList.remove('sf');el.classList.add('ss');
+  selSlot={id:el.dataset.id,num:el.dataset.num};
+  document.getElementById('sd').value='Slot #'+selSlot.num+' ('+selSlot.id+')';
+  document.getElementById('bpanel').style.display='block';
+  updCost();
+  document.getElementById('bpanel').scrollIntoView({behavior:'smooth'});
+}
+
+function updCost(){
+  if(!pph)return;
+  document.getElementById('cd').textContent=fmtINR(pph*parseInt(document.getElementById('hr').value));
+}
+document.getElementById('hr').addEventListener('change',updCost);
+
+document.getElementById('bb').addEventListener('click',async()=>{
+  if(!selSlot){showToast('Select a slot first','error');return;}
+  const veh=document.getElementById('vn').value.trim().toUpperCase();
+  if(!veh){showToast('Enter vehicle number','error');return;}
+  const h=parseInt(document.getElementById('hr').value);
+  const btn=document.getElementById('bb');
+  btnLoading(btn,'Booking...');
+  try{
+    const r=await Bookings.book({lotId,slotId:selSlot.id,vehicleNumber:veh,hours:h});
+    const b=r.booking;
+    document.getElementById('qrc').innerHTML=generateQR(b.qr_token);
+    document.getElementById('qrt').textContent=b.qr_token;
+    document.getElementById('cL').textContent=b.lot_name;
+    document.getElementById('cS').textContent='#'+b.slot_number;
+    document.getElementById('cV').textContent=b.vehicle_number;
+    document.getElementById('cD').textContent=b.hours+'h';
+    document.getElementById('cT').textContent=fmtINR(b.total_amount);
+    document.getElementById('cm').style.display='flex';
+    const sEl=document.getElementById('sl-'+selSlot.id);
+    if(sEl){sEl.classList.remove('ss');sEl.classList.add('so');sEl.dataset.occ='1';}
+    selSlot=null;
+    document.getElementById('bpanel').style.display='none';
+    showToast('Booking confirmed! 🎉','success');
+  }catch(e){showToast(e.message,'error');}
+  btnReset(btn);
+});
+
+loadLot();
+</script>
+</body></html>

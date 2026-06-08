@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Bookings — SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>
+.main{max-width:1000px;margin:0 auto;padding:28px 24px}
+.fb{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.fb button{padding:7px 18px;border-radius:8px;font-size:13px;font-weight:600;font-family:'Syne',sans-serif;cursor:pointer;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#64748b;transition:all .2s}
+.fb button.on{background:#f97316;border-color:#f97316;color:#fff}
+.bk{padding:20px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);margin-bottom:14px}
+.bg4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.tile{background:rgba(255,255,255,.04);border-radius:8px;padding:10px}
+.tl{font-size:11px;color:#64748b;margin-bottom:3px;text-transform:uppercase;letter-spacing:.3px}
+.tv{font-size:14px;font-weight:700}
+@media(max-width:600px){.bg4{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="main pe">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:22px">
+    <div><h1 class="fd" style="font-size:26px;font-weight:800">My Bookings</h1><p style="color:#64748b;font-size:13px;margin-top:3px">Full history of your parking sessions</p></div>
+    <a href="/pages/map.html" class="btn btn-p">+ New Booking</a>
+  </div>
+  <div class="fb">
+    <button class="on" onclick="filt('all',this)">All</button>
+    <button onclick="filt('active',this)">🟢 Active</button>
+    <button onclick="filt('cancelled',this)">🔴 Cancelled</button>
+  </div>
+  <div id="list"><div style="display:flex;justify-content:center;padding:48px"><div class="loader"></div></div></div>
+</div>
+
+<!-- QR Modal -->
+<div id="qm" class="modal-bg" style="display:none">
+  <div class="card modal" style="padding:28px;text-align:center">
+    <h3 class="fd" style="font-size:18px;margin-bottom:6px" id="qmL">—</h3>
+    <p style="color:#64748b;font-size:12px;margin-bottom:18px">Entry QR Code</p>
+    <div style="background:rgba(0,0,0,.4);border-radius:12px;padding:14px;display:inline-block;margin-bottom:10px" id="qmB"></div>
+    <div class="fd" style="font-size:18px;letter-spacing:3px;color:#f97316;margin-bottom:18px" id="qmT"></div>
+    <div style="background:rgba(255,255,255,.04);border-radius:10px;padding:14px;text-align:left;margin-bottom:20px;font-size:13px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="color:#64748b">Slot</span><strong id="qmS">—</strong></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="color:#64748b">Vehicle</span><strong id="qmV">—</strong></div>
+      <div style="display:flex;justify-content:space-between;border-top:1px solid rgba(255,255,255,.07);padding-top:8px;margin-top:4px"><span style="color:#64748b">Total</span><strong style="color:#f97316" id="qmA">—</strong></div>
+    </div>
+    <button onclick="document.getElementById('qm').style.display='none'" class="btn btn-s btn-w">Close</button>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script>
+if(!requireAuth()){}
+renderNavbar('bookings');
+let all=[];
+
+async function load(){
+  try{const r=await Bookings.getMy();all=r.bookings;render(all);}
+  catch(e){showToast(e.message,'error');}
+}
+
+function filt(f,btn){
+  document.querySelectorAll('.fb button').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  render(f==='all'?all:all.filter(b=>b.status===f));
+}
+
+function render(bks){
+  const el=document.getElementById('list');
+  if(!bks.length){
+    el.innerHTML='<div class="card" style="padding:40px;text-align:center;color:#64748b"><div style="font-size:36px;margin-bottom:10px">📭</div><p>No bookings found</p><a href="/pages/map.html" style="color:#f97316;font-size:13px;display:block;margin-top:10px">Book now →</a></div>';
+    return;
+  }
+  el.innerHTML=bks.map(b=>`
+    <div class="bk">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:4px">
+        <div><div class="fd" style="font-size:17px;font-weight:700">${b.lot_name}</div><div style="color:#64748b;font-size:12px;margin-top:3px">${b.location}</div></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge ${b.status==='active'?'bg':'br'}">${b.status==='active'?'🟢 Active':'🔴 Cancelled'}</span>
+          <span style="color:#f97316;font-weight:700;font-size:15px">${fmtINR(b.total_amount)}</span>
+        </div>
+      </div>
+      <div class="bg4">
+        <div class="tile"><div class="tl">Slot</div><div class="tv">#${b.slot_number}</div></div>
+        <div class="tile"><div class="tl">Vehicle</div><div class="tv">${b.vehicle_number}</div></div>
+        <div class="tile"><div class="tl">Duration</div><div class="tv">${b.hours}h</div></div>
+        <div class="tile"><div class="tl">Rate</div><div class="tv">${fmtINR(b.price_per_hour)}/hr</div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span style="color:#475569;font-size:12px">Booked: ${fmtIST(b.booked_at)}</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-s btn-sm" onclick="showQR('${b.id}')">🔍 View QR</button>
+          ${b.status==='active'?`<button class="btn btn-d btn-sm" onclick="cancelBk('${b.id}')">Cancel</button>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function showQR(id){
+  const b=all.find(x=>x.id===id);if(!b)return;
+  document.getElementById('qmL').textContent=b.lot_name;
+  document.getElementById('qmB').innerHTML=generateQR(b.qr_token);
+  document.getElementById('qmT').textContent=b.qr_token;
+  document.getElementById('qmS').textContent='#'+b.slot_number;
+  document.getElementById('qmV').textContent=b.vehicle_number;
+  document.getElementById('qmA').textContent=fmtINR(b.total_amount);
+  document.getElementById('qm').style.display='flex';
+}
+
+async function cancelBk(id){
+  if(!confirm('Cancel this booking?'))return;
+  try{await Bookings.cancel(id);showToast('Booking cancelled','info');load();}
+  catch(e){showToast(e.message,'error');}
+}
+
+document.getElementById('qm').addEventListener('click',e=>{if(e.target===document.getElementById('qm'))document.getElementById('qm').style.display='none';});
+load();
+</script>
+</body></html>

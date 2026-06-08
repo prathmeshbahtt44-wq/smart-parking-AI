@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Register — SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}.ac{width:100%;max-width:440px}.fg{margin-bottom:16px}.er{color:#f87171;font-size:13px;margin-top:6px;display:none}</style>
+</head>
+<body>
+<div class="ac pe">
+  <div style="text-align:center;margin-bottom:26px">
+    <a href="/" style="text-decoration:none;display:inline-flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:26px">🚗</span><span class="fd" style="font-weight:800;font-size:20px;color:#fff">SmartPark <span style="color:#f97316">AI</span></span>
+    </a>
+    <h2 class="fd" style="font-size:22px;color:#fff">Create your account</h2>
+    <p style="color:#64748b;font-size:13px;margin-top:4px">Join smart city drivers today</p>
+  </div>
+  <div class="card" style="padding:32px">
+    <form id="frm">
+      <div class="fg"><label class="lbl">Full Name</label><div class="iw"><span class="ii">👤</span><input type="text" id="nm" class="inp ic" placeholder="Prathmesh Bhatt" required autocomplete="name"></div></div>
+      <div class="fg"><label class="lbl">Email</label><div class="iw"><span class="ii">📧</span><input type="email" id="em" class="inp ic" placeholder="you@example.com" required autocomplete="email"></div></div>
+      <div class="fg"><label class="lbl">Password</label><div class="iw"><span class="ii">🔒</span><input type="password" id="pw" class="inp ic" placeholder="Min 6 characters" required autocomplete="new-password"></div></div>
+      <div class="fg"><label class="lbl">Confirm Password</label><div class="iw"><span class="ii">🔒</span><input type="password" id="cp" class="inp ic" placeholder="Re-enter password" required autocomplete="new-password"></div></div>
+      <div class="er" id="er"></div>
+      <button type="submit" id="sb" class="btn btn-p btn-w" style="margin-top:10px;padding:13px">Create Account</button>
+    </form>
+    <p style="text-align:center;color:#64748b;font-size:13px;margin-top:18px">Have an account? <a href="/pages/login.html" style="color:#f97316;font-weight:600">Sign in</a></p>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script>
+  redirectIfAuth();
+  document.getElementById('frm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    const er=document.getElementById('er');er.style.display='none';
+    const name=document.getElementById('nm').value.trim();
+    const email=document.getElementById('em').value.trim();
+    const pass=document.getElementById('pw').value;
+    const conf=document.getElementById('cp').value;
+    const btn=document.getElementById('sb');
+    if(pass!==conf){er.textContent='Passwords do not match';er.style.display='block';return;}
+    if(pass.length<6){er.textContent='Password must be at least 6 characters';er.style.display='block';return;}
+    btnLoading(btn,'Creating account...');
+    try{
+      const r=await Auth.register({name,email,password:pass});
+      setAuth(r.token,r.user);showToast('Account created! Welcome 🎉','success');
+      setTimeout(()=>window.location.href='/pages/dashboard.html',800);
+    }catch(e){er.textContent=e.message;er.style.display='block';btnReset(btn);}
+  });
+</script>
+</body></html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Find Parking — SmartPark AI</title>
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>.main{max-width:1200px;margin:0 auto;padding:28px 24px}.gr{display:grid;grid-template-columns:1fr 1fr;gap:22px}@media(max-width:700px){.gr{grid-template-columns:1fr}}.lc{display:block;padding:14px 16px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);margin-bottom:10px;cursor:pointer;transition:all .2s;text-decoration:none}.lc:hover{border-color:rgba(249,115,22,.35);transform:translateX(3px)}</style>
+</head>
+<body>
+<div id="navbar-mount"></div>
+<div class="main pe">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:22px">
+    <div><h1 class="fd" style="font-size:26px;font-weight:800">Find Parking</h1><p style="color:#64748b;font-size:13px;margin-top:3px">GPS-powered discovery</p></div>
+    <button id="lb" class="btn btn-p">📍 Use My Location</button>
+  </div>
+  <div class="gr">
+    <div class="card" style="padding:14px"><div id="map"></div><div id="ls" style="text-align:center;color:#64748b;font-size:12px;margin-top:10px">Click "Use My Location" or browse all lots.</div></div>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h2 class="fd" style="font-size:17px">Parking Lots</h2><span class="badge bo" id="lc">Loading...</span>
+      </div>
+      <div id="ll" style="max-height:400px;overflow-y:auto;padding-right:4px"><div style="display:flex;justify-content:center;padding:40px"><div class="loader"></div></div></div>
+    </div>
+  </div>
+</div>
+<div id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script>
+if(!requireAuth()){}
+renderNavbar('map');
+const map=L.map('map').setView([19.076,72.877],11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM',maxZoom:18}).addTo(map);
+const mkI=(c='#f97316')=>L.divIcon({className:'',html:'<div style="background:'+c+';color:#fff;padding:4px 9px;border-radius:8px;font-size:11px;font-weight:700;font-family:Syne,sans-serif;box-shadow:0 2px 8px rgba(0,0,0,.5)">🅿️</div>',iconAnchor:[18,16]});
+let mks=[];
+function clr(){mks.forEach(m=>map.removeLayer(m));mks=[];}
+function card(l){
+  const a=l.availableSlots??0,pct=Math.round(a/l.total_slots*100),bc=availBadge(a,l.total_slots);
+  return '<a class="lc" href="/pages/lot.html?id='+l.id+'"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px"><div><div style="font-weight:600;font-size:14px">'+l.name+'</div><div style="color:#64748b;font-size:12px;margin-top:2px">'+l.location+'</div></div><span class="badge '+bc+'" style="margin-left:8px">'+a+'/'+l.total_slots+'</span></div><div style="display:flex;gap:14px;font-size:12px;color:#64748b;flex-wrap:wrap;margin-bottom:7px"><span>🚗 '+l.vehicle_type+'</span><span>💰 '+fmtINR(l.price_per_hour)+'/hr</span>'+(l.distanceKm!=null?'<span>📏 '+l.distanceKm+' km</span>':'')+'</div><div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+(pct>30?'#22c55e':pct>0?'#f97316':'#ef4444')+'"></div></div></a>';
+}
+async function loadAll(){
+  const r=await Parking.getAll();
+  document.getElementById('lc').textContent=r.lots.length+' lots';
+  document.getElementById('ll').innerHTML=r.lots.map(card).join('');
+  clr();r.lots.forEach(l=>{const m=L.marker([l.lat,l.lng],{icon:mkI()}).addTo(map).bindPopup('<b>'+l.name+'</b><br>'+l.availableSlots+' free · <a href="/pages/lot.html?id='+l.id+'" style="color:#f97316">Book →</a>');mks.push(m);});
+}
+document.getElementById('lb').addEventListener('click',()=>{
+  if(!navigator.geolocation){showToast('Geolocation not supported','error');return;}
+  const btn=document.getElementById('lb');btnLoading(btn,'Locating...');
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    const{latitude:lat,longitude:lng}=pos.coords;
+    map.setView([lat,lng],14);
+    L.circleMarker([lat,lng],{radius:9,color:'#f97316',fillColor:'#f97316',fillOpacity:.9}).addTo(map).bindPopup('📍 You').openPopup();
+    document.getElementById('ls').innerHTML='<span style="color:#4ade80">📍 '+lat.toFixed(4)+', '+lng.toFixed(4)+'</span>';
+    try{
+      const r=await Parking.getNearby(lat,lng);
+      document.getElementById('lc').textContent=r.lots.length+' nearby';
+      document.getElementById('ll').innerHTML=r.lots.length?r.lots.map(card).join(''):'<div class="card" style="padding:28px;text-align:center;color:#64748b"><p>No lots within 15km</p><a href="/pages/ai-finder.html" style="color:#f97316;font-size:13px;display:block;margin-top:8px">Try AI Finder →</a></div>';
+      clr();r.lots.forEach(l=>{const c=l.availableSlots>0?'#f97316':'#ef4444';const m=L.marker([l.lat,l.lng],{icon:mkI(c)}).addTo(map).bindPopup('<b>'+l.name+'</b><br>'+l.availableSlots+' free · '+l.distanceKm+'km<br><a href="/pages/lot.html?id='+l.id+'" style="color:#f97316">Book →</a>');mks.push(m);});
+    }catch(e){showToast(e.message,'error');}
+    btnReset(btn);
+  },()=>{showToast('Location denied — showing all lots','error');btnReset(btn);loadAll();});
+});
+loadAll();
+</script>
+</body></html>
